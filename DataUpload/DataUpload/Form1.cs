@@ -19,50 +19,32 @@ namespace DataUpload
             InitializeComponent();
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-             
-           
-         
-
-            // Keep the console window open in debug mode.
-        }
+        
         private void Lox(string sLox)
         {
-            System.IO.StreamWriter file = new System.IO.StreamWriter(@"D:\work\data\log.txt",true);
+            System.IO.StreamWriter file = new System.IO.StreamWriter(txtDataFolder.Text +"log.txt",true);
             file.WriteLine(sLox);
 
             file.Close();
         }
-        //private void ExecuteStmt (string pStmt)
-        //{
-        //    SqlConnection con = new SqlConnection(@"Data Source=BT101NB\SQLEXPRESS;Initial Catalog=DBWorldBank;Integrated Security=True");
-        //    con.Open();
-        //    SqlCommand command = new SqlCommand(pStmt, con);
-        //    command.ExecuteNonQuery();
-        //    con.Close();
-        //}
 
-        private void button2_Click(object sender, EventArgs e)
-        {
-            DirectoryInfo d = new DirectoryInfo(@"D:\work\data\");//Assuming Test is your Folder
-            FileInfo[] Files = d.GetFiles("*_Data.txt"); //Getting Text files
-            string str = "";
-            foreach (FileInfo file in Files)
-            {
-                Lox(file.Name + "Started"); 
-                LoAndBehold ( file.Name);
-                Lox(file.Name  + "Ended");
-            }
-        }
+        
         private void LoAndBehold(string sFileName)
         {
-
-            string[] lines = System.IO.File.ReadAllLines(@"D:\work\data\"  + sFileName);
+            SqlConnection con;
+            string[] lines = System.IO.File.ReadAllLines(@"D:\work\data\" + sFileName);
             char[] delimiters = new char[] { '\t' };
             string stmt;
-            SqlConnection con = new SqlConnection(@"Data Source=BT101NB\SQLEXPRESS;Initial Catalog=DBWorldBank;Integrated Security=True");
-            con.Open();
+            try
+            { 
+                con = new SqlConnection(txtConnectionStr.Text);
+                con.Open();
+            }
+            catch (Exception myExp)
+            {
+                MessageBox.Show("Connection String is not valid... " + myExp.Message);
+                return;
+            }
             int i; 
             System.Console.WriteLine("Contents of WriteLines2.txt = ");
             foreach (string line in lines)
@@ -88,7 +70,7 @@ namespace DataUpload
                     stmt = stmt + " getdate()";
                     stmt = " INSERT INTO WBData  (IndexName,CountryName,CountryCode,SeriesName,SeriesCode,DataPeriod,Zref) " + stmt;
 
-                    //ExecuteStmt(stmt);
+                    
                     SqlCommand command = new SqlCommand(stmt, con);
                     command.ExecuteNonQuery();
                 }
@@ -105,10 +87,21 @@ namespace DataUpload
         private void LoAndBeholdDefinition(string sFileName)
         {
 
-            string[] lines = System.IO.File.ReadAllLines(@"D:\work\data\" + sFileName);
+            string[] lines = System.IO.File.ReadAllLines(txtDataFolder.Text + sFileName);
             char[] delimiters = new char[] { '\t' };
             string stmt;
-            SqlConnection con = new SqlConnection(@"Data Source=BT101NB\SQLEXPRESS;Initial Catalog=DBWorldBank;Integrated Security=True");
+
+            SqlConnection con;
+            try
+            {
+                con = new SqlConnection(txtConnectionStr.Text);
+                con.Open();
+            }
+            catch (Exception myExp)
+            {
+                MessageBox.Show("Connection String is not valid... " + myExp.Message);
+                return;
+            }  
             con.Open();
             int i = 0;
             System.Console.WriteLine("Contents of WriteLines2.txt = ");
@@ -148,12 +141,47 @@ namespace DataUpload
             con.Close();
 
         }
-
-        private void button1_Click_1(object sender, EventArgs e)
+ 
+        private void cmdLoadData_Click(object sender, EventArgs e)
         {
-            DirectoryInfo d = new DirectoryInfo(@"D:\work\data\");//Assuming Test is your Folder
-            FileInfo[] Files = d.GetFiles("*Definition and Source.txt"); //Getting Text files
+            FileInfo[] Files;
             string str = "";
+            try
+            {
+                DirectoryInfo d = new DirectoryInfo(txtDataFolder.Text);//Assuming Test is your Folder
+                Files = d.GetFiles("*_Data.txt"); //Getting Text files
+            }
+            catch (Exception myExp)
+            {
+                MessageBox.Show("Directory is not valid... " + myExp.Message);
+                return;
+            }
+
+            foreach (FileInfo file in Files)
+            {
+                Lox(file.Name + "Started");
+                LoAndBehold(file.Name);
+                Lox(file.Name + "Ended");
+            }
+        }
+
+        
+
+        private void cmdLoadDefinition_Click(object sender, EventArgs e)
+        {
+            FileInfo[] Files;
+            string str = "";
+            try
+            {
+                DirectoryInfo d = new DirectoryInfo(txtDataFolder.Text);//Assuming Test is your Folder
+                Files = d.GetFiles("*Definition and Source.txt"); //Getting Text files
+            }
+            catch (Exception myExp)
+            {
+                MessageBox.Show("Directory is not valid... " + myExp.Message);
+                return;
+            }
+
             foreach (FileInfo file in Files)
             {
                 Lox(file.Name + "Started");
