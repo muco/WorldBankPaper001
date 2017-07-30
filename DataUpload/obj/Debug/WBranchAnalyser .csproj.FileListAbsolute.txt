@@ -1,0 +1,9 @@
+D:\work\DataUpload\DataUpload\bin\Debug\DataUpload.exe.config
+D:\work\DataUpload\DataUpload\obj\Debug\DataUpload.exe
+D:\work\DataUpload\DataUpload\obj\Debug\DataUpload.pdb
+D:\work\DataUpload\DataUpload\bin\Debug\DataUpload.exe
+D:\work\DataUpload\DataUpload\bin\Debug\DataUpload.pdb
+D:\work\DataUpload\DataUpload\obj\Debug\WBranchAnalyser .csprojResolveAssemblyReference.cache
+D:\work\DataUpload\DataUpload\obj\Debug\DataUpload.Form1.resources
+D:\work\DataUpload\DataUpload\obj\Debug\DataUpload.Properties.Resources.resources
+D:\work\DataUpload\DataUpload\obj\Debug\WBranchAnalyser .csproj.GenerateResource.Cache
