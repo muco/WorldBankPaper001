@@ -1,0 +1,992 @@
+USE [master]
+GO
+/****** Object:  Database [DBWorldBank]    Script Date: 30/07/2017 12:11:06 ******/
+CREATE DATABASE [DBWorldBank]
+ CONTAINMENT = NONE
+ ON  PRIMARY 
+( NAME = N'DBWorldBank', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL13.SQLEXPRESS\MSSQL\DATA\DBWorldBank.mdf' , SIZE = 860160KB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB )
+ LOG ON 
+( NAME = N'DBWorldBank_log', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL13.SQLEXPRESS\MSSQL\DATA\DBWorldBank_log.ldf' , SIZE = 1449984KB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )
+GO
+ALTER DATABASE [DBWorldBank] SET COMPATIBILITY_LEVEL = 130
+GO
+IF (1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
+begin
+EXEC [DBWorldBank].[dbo].[sp_fulltext_database] @action = 'enable'
+end
+GO
+ALTER DATABASE [DBWorldBank] SET ANSI_NULL_DEFAULT OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET ANSI_NULLS OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET ANSI_PADDING OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET ANSI_WARNINGS OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET ARITHABORT OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET AUTO_CLOSE OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET AUTO_SHRINK OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET AUTO_UPDATE_STATISTICS ON 
+GO
+ALTER DATABASE [DBWorldBank] SET CURSOR_CLOSE_ON_COMMIT OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET CURSOR_DEFAULT  GLOBAL 
+GO
+ALTER DATABASE [DBWorldBank] SET CONCAT_NULL_YIELDS_NULL OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET NUMERIC_ROUNDABORT OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET QUOTED_IDENTIFIER OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET RECURSIVE_TRIGGERS OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET  DISABLE_BROKER 
+GO
+ALTER DATABASE [DBWorldBank] SET AUTO_UPDATE_STATISTICS_ASYNC OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET DATE_CORRELATION_OPTIMIZATION OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET TRUSTWORTHY OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET ALLOW_SNAPSHOT_ISOLATION OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET PARAMETERIZATION SIMPLE 
+GO
+ALTER DATABASE [DBWorldBank] SET READ_COMMITTED_SNAPSHOT OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET HONOR_BROKER_PRIORITY OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET RECOVERY SIMPLE 
+GO
+ALTER DATABASE [DBWorldBank] SET  MULTI_USER 
+GO
+ALTER DATABASE [DBWorldBank] SET PAGE_VERIFY CHECKSUM  
+GO
+ALTER DATABASE [DBWorldBank] SET DB_CHAINING OFF 
+GO
+ALTER DATABASE [DBWorldBank] SET FILESTREAM( NON_TRANSACTED_ACCESS = OFF ) 
+GO
+ALTER DATABASE [DBWorldBank] SET TARGET_RECOVERY_TIME = 60 SECONDS 
+GO
+ALTER DATABASE [DBWorldBank] SET DELAYED_DURABILITY = DISABLED 
+GO
+ALTER DATABASE [DBWorldBank] SET QUERY_STORE = OFF
+GO
+USE [DBWorldBank]
+GO
+ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = 0;
+GO
+ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET MAXDOP = PRIMARY;
+GO
+ALTER DATABASE SCOPED CONFIGURATION SET LEGACY_CARDINALITY_ESTIMATION = OFF;
+GO
+ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET LEGACY_CARDINALITY_ESTIMATION = PRIMARY;
+GO
+ALTER DATABASE SCOPED CONFIGURATION SET PARAMETER_SNIFFING = ON;
+GO
+ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET PARAMETER_SNIFFING = PRIMARY;
+GO
+ALTER DATABASE SCOPED CONFIGURATION SET QUERY_OPTIMIZER_HOTFIXES = OFF;
+GO
+ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET QUERY_OPTIMIZER_HOTFIXES = PRIMARY;
+GO
+USE [DBWorldBank]
+GO
+/****** Object:  UserDefinedFunction [dbo].[fn_countryList]    Script Date: 30/07/2017 12:11:06 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE Function [dbo].[fn_countryList] 
+(
+@SeriesCode1  varchar(300),
+@IndexName1   varchar(300)
+)
+returns varchar(3000)
+as
+BEGIN
+Declare @aa varchar (2000)
+set @aa = ''
+Declare @tmp1 Table ([IndexName] [varchar](300) NULL,
+	[CountryName] [varchar](100) NULL,
+	[CountryCode] [varchar](100) NULL,
+	[SeriesName] [varchar](300) NULL,
+	[SeriesCode] [varchar](300) NULL,
+	[DataPeriod] [varchar](100) NULL,
+	[Zref] [datetime] NULL)
+
+Declare @tmp2 Table ([IndexName] [varchar](300) NULL,
+	[CountryName] [varchar](100) NULL,
+	[CountryCode] [varchar](100) NULL,
+	[SeriesName] [varchar](300) NULL,
+	[SeriesCode] [varchar](300) NULL,
+	[DataPeriod] [varchar](100) NULL,
+	[Zref] [datetime] NULL)
+	/*
+	
+
+select [dbo].[fn_countryList] ('SH.MED.SAOP.P5','623137e2-5a91-4ee7-a793-977f3f055a1d_Data.txt')
+ 
+ */
+
+Insert into @tmp1
+select *   from [dbo].[WBData] where  SeriesCode=@SeriesCode1 and CountryCode IN (select CountryCode	 from [Groups] where GroupCode ='WLD')
+
+Insert into @tmp2
+select *  from [WBData] where  SeriesCode='FB.CBK.BRCH.P5' 	  and CountryCode IN (select CountryCode	 from [Groups] where GroupCode ='WLD') and IndexName=@IndexName1
+
+
+select @aa = 
+    case when @aa = ''
+    then  t1.CountryName 
+    else @aa + coalesce(', ' +  t1.CountryName , '')
+    end
+ from @tmp1 t1 join @tmp2  t2 on t1.CountryCode = t2.CountryCode
+
+RETURN @aa
+END
+
+
+
+
+GO
+/****** Object:  Table [dbo].[Groups]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Groups](
+	[GroupCode] [nvarchar](255) NULL,
+	[GroupName] [nvarchar](255) NULL,
+	[CountryCode] [nvarchar](255) NULL,
+	[CountryName] [nvarchar](255) NULL
+) ON [PRIMARY]
+
+GO
+/****** Object:  Table [dbo].[WBCorelation]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[WBCorelation](
+	[GroupCode] [varchar](30) NULL,
+	[SeriesCode1] [varchar](300) NULL,
+	[SeriesCode2] [varchar](300) NULL,
+	[Indexname1] [varchar](300) NULL,
+	[Indexname2] [varchar](300) NULL,
+	[Corelation] [numeric](20, 10) NULL,
+	[Zref] [datetime] NULL,
+	[CountX] [int] NULL,
+	[ID] [int] IDENTITY(1,1) NOT NULL
+) ON [PRIMARY]
+
+GO
+/****** Object:  Table [dbo].[WBData]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[WBData](
+	[IndexName] [varchar](300) NULL,
+	[CountryName] [varchar](100) NULL,
+	[CountryCode] [varchar](100) NULL,
+	[SeriesName] [varchar](300) NULL,
+	[SeriesCode] [varchar](300) NULL,
+	[DataPeriod] [varchar](100) NULL,
+	[Zref] [datetime] NULL
+) ON [PRIMARY]
+
+GO
+SET ANSI_PADDING ON
+
+GO
+/****** Object:  Index [Ind001]    Script Date: 30/07/2017 12:11:07 ******/
+CREATE CLUSTERED INDEX [Ind001] ON [dbo].[WBData]
+(
+	[SeriesCode] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[WBDataDefinition]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[WBDataDefinition](
+	[IndexName] [varchar](300) NULL,
+	[Code] [varchar](3000) NULL,
+	[IndicatorName] [varchar](3000) NULL,
+	[LongDefinition] [varchar](3000) NULL,
+	[DataSource] [varchar](3000) NULL,
+	[Zref] [datetime] NULL
+) ON [PRIMARY]
+
+GO
+/****** Object:  Table [dbo].[WBDataDeleted]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[WBDataDeleted](
+	[IndexName] [varchar](300) NULL,
+	[CountryName] [varchar](100) NULL,
+	[CountryCode] [varchar](100) NULL,
+	[SeriesName] [varchar](300) NULL,
+	[SeriesCode] [varchar](300) NULL,
+	[DataPeriod] [varchar](100) NULL,
+	[Zref] [datetime] NULL
+) ON [PRIMARY]
+
+GO
+/****** Object:  Table [dbo].[WBError]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[WBError](
+	[GroupCode] [varchar](300) NULL,
+	[SeriesCode1] [varchar](300) NULL,
+	[SeriesCode2] [varchar](300) NULL,
+	[Indexname1] [varchar](300) NULL,
+	[Indexname2] [varchar](300) NULL,
+	[ErrorNumber] [int] NULL,
+	[ErrorSeverity] [int] NULL,
+	[ErrorState] [varchar](1000) NULL,
+	[ErrorProcedure] [varchar](1000) NULL,
+	[ErrorLine] [varchar](1000) NULL,
+	[ErrorMessage] [varchar](1000) NULL,
+	[Zref] [datetime] NULL
+) ON [PRIMARY]
+
+GO
+/****** Object:  StoredProcedure [dbo].[sel_tmp]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+	CREATE proc [dbo].[sel_tmp]
+	as
+	/*
+	mucahit gundebahar , 
+	definition:  contains temporary queries during work.
+	*/
+
+	return
+	select SeriesCode1,(select top 1 IndicatorName 
+	 from [dbo].[WBDataDefinition]
+	 where Code = SeriesCode1 ) IndicatorName, convert(numeric(20,4) , Corelation) as Correlation ,CountX 
+	  from WBCorelation
+	where GroupCode ='WLD'
+	and ABS(Corelation) > 0.35  
+		order by Corelation desc
+
+
+
+		select * from WBCorelation where  SeriesCode1='SH.MED.SAOP.P5' 	and  GroupCode ='WLD'
+		
+		select * into #tmp001 from [dbo].[WBData] where  SeriesCode='SH.MED.SAOP.P5'  and CountryCode IN (select CountryCode	 from [Groups] where GroupCode ='WLD')
+
+		drop table #tmp002
+		select * into #tmp002 from [WBData] where  SeriesCode='FB.CBK.BRCH.P5' 	  and CountryCode IN (select CountryCode	 from [Groups] where GroupCode ='WLD') and IndexName='623137e2-5a91-4ee7-a793-977f3f055a1d_Data.txt'
+
+		
+		select * from #tmp001 t1 join #tmp002  t2 on t1.CountryCode = t2.CountryCode
+
+		select * from #tmp002
+
+
+	
+/*
+select * from [WBError]
+exec  sp_calculate_correlation 'MEA', 'EN.ATM.PM25.MC.ZS','FB.CBK.BRCH.P5','623137e2-5a91-4ee7-a793-977f3f055a1d_Data.txt','623137e2-5a91-4ee7-a793-977f3f055a1d_Data.txt'
+exec sp_sel_WBCorelation 2
+
+
+print 'table 6 query'
+select   (select top 1  GroupName from [dbo].[Groups] t2 where t1.GroupCode = t2.GroupCode) as GroupName , convert(numeric(20,4)    ,  Corelation) as Correlation , CountX  
+from [dbo].[WBCorelation] t1 
+where SeriesCode1 ='SH.MED.SAOP.P5'
+order by Correlation desc
+
+
+
+
+
+select * from [dbo].[WBDataDefinition]  where IndicatorName  like 'Net bilateral aid flows from DAC donors%'
+select * from [dbo].[WBDataDefinition]  where IndicatorName ='ATMs per 100,000 adults'
+select dist from groups where groupname like '%income%'
+
+
+  select GroupName, groupcode,count(1)  
+ from [dbo].[Groups]   
+ group by GroupName, groupcode
+ order by 1 desc
+ 
+
+
+main groups : 
+ select GroupName, groupcode,count(1)  
+ from [dbo].[Groups]  
+ where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+ group by GroupName, groupcode
+ order by 3 desc
+
+
+ select SeriesCode1,(select top 1 IndicatorName 
+	 from [dbo].[WBDataDefinition]
+	 where Code = SeriesCode1 ) IndicatorName, convert(numeric(20,4) , Corelation) as Correlation ,CountX 
+	  from WBCorelation
+	where GroupCode ='WLD'
+	and ABS(Corelation) > 0.35  
+
+	order by 2 desc
+ 
+
+ select  ( select top 1  groupname  from     groups  t2 where   t1.GroupCode = t2.GroupCode)  , SeriesCode1,(select top 1 IndicatorName 
+	 from [dbo].[WBDataDefinition]
+	 where Code = SeriesCode1 ) IndicatorName, convert(numeric(20,4) , Corelation) as Correlation ,CountX 
+	  from WBCorelation t1
+	where GroupCode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	and ABS(Corelation) > 0.8  
+
+	order by 4 desc
+
+*/
+
+
+
+GO
+/****** Object:  StoredProcedure [dbo].[sp_calculate_correlation]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROC [dbo].[sp_calculate_correlation]
+@GroupCode varchar(300) , 
+@SeriesCode1  varchar(300),
+@SeriesCode2  varchar(300),
+@Indexname1 varchar(300),
+@Indexname2 varchar(300) 
+
+as
+
+	/*
+	mucahit gundebahar , 
+	definition:  Calculates corelations and saveresults to the table 'WBCorelation'.
+	you can see any kind of errors in the table  'WBError'
+	*/
+
+
+set nocount on
+if @SeriesCode1 = @SeriesCode2 or @SeriesCode1 ='GFDD.AI.02'
+	return
+
+
+declare @iCount int;
+set @iCount = 0
+
+-- exec sp_calculate_correlation 'FB.CBK.BRCH.P5','FB.ATM.TOTL.P5','623137e2-5a91-4ee7-a793-977f3f055a1d_Data.txt','623137e2-5a91-4ee7-a793-977f3f055a1d_Data.txt'
+select * into #tmp001
+from [dbo].[WBData]
+where   SeriesCode = @SeriesCode1 and Indexname =@Indexname1 AND ISNUMERIC( DataPeriod) = 1
+and CountryCode IN (select CountryCode	 from [Groups] where GroupCode =@GroupCode)
+ 
+ select * into #tmp002
+from [dbo].[WBData]
+where   SeriesCode = @SeriesCode2 and Indexname =@Indexname2 AND ISNUMERIC( DataPeriod) = 1
+and CountryCode IN (select CountryCode	 from [Groups] where GroupCode =@GroupCode)
+ 
+
+begin try
+  
+
+  SELECT @iCount= count(1)  
+FROM #tmp001 t1 join #tmp002 t2 on t1.CountryCode=  t2.CountryCode
+where ISNUMERIC( t1.DataPeriod) = 1 and ISNUMERIC(t2.DataPeriod)=1 
+
+ 
+
+ if  isnull(@iCount,0)>7
+ INSERT WBCorelation ([GroupCode]
+      ,[SeriesCode1]
+      ,[SeriesCode2]
+      ,[Indexname1]
+      ,[Indexname2]
+      ,[Corelation]
+      ,[Zref]
+      ,[CountX])
+SELECT @GroupCode, @SeriesCode1, @SeriesCode2, @Indexname1, @Indexname2,  (Avg( convert(float, t1.DataPeriod) * convert(float, t2.DataPeriod)) - Avg(convert(float, t1.DataPeriod)) * Avg(convert(float, t2.DataPeriod))) / ((case when StDevP(convert(float, t1.DataPeriod))= 0 then 0.000001 else StDevP(convert(float, t1.DataPeriod)) end )  * (case when StDevP(convert(float, t2.DataPeriod)) = 0 then 0.000001 else StDevP(convert(float, t2.DataPeriod)) end )) AS Correlation , GETDATE(), count(1) as adet
+FROM #tmp001 t1 join #tmp002 t2 on t1.CountryCode=  t2.CountryCode
+where ISNUMERIC( t1.DataPeriod) = 1 and ISNUMERIC(t2.DataPeriod)=1 
+
+end try 
+begin catch
+ 
+
+
+ 
+
+INSERT WBError
+ SELECT  
+  @GroupCode, @SeriesCode1, @SeriesCode2, @Indexname1, @Indexname2,
+        ERROR_NUMBER() AS ErrorNumber,  
+        ERROR_SEVERITY() AS ErrorSeverity,  
+        ERROR_STATE() AS ErrorState,  
+        ERROR_PROCEDURE() AS ErrorProcedure,  
+        ERROR_LINE() AS ErrorLine,  
+        ERROR_MESSAGE() AS ErrorMessage,
+		GETDATE();  
+
+
+end catch
+
+set nocount off
+
+
+GO
+/****** Object:  StoredProcedure [dbo].[sp_calculate_correlationdbc]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROC [dbo].[sp_calculate_correlationdbc]
+@GroupCode varchar(300) , 
+@SeriesCode1  varchar(300),
+@SeriesCode2  varchar(300),
+@Indexname1 varchar(300),
+@Indexname2 varchar(300) 
+
+as
+
+	/*
+	mucahit gundebahar , 
+	definition:  Calculates corelations,  for debugging purpose and  does not save it to a table, just show results.
+	*/
+
+
+set nocount on
+if @SeriesCode1 = @SeriesCode2 or @SeriesCode1 ='GFDD.AI.02'
+	return
+
+
+declare @iCount int;
+set @iCount = 0
+
+-- exec [sp_calculate_correlationdbc] 'FB.CBK.BRCH.P5','FB.ATM.TOTL.P5','623137e2-5a91-4ee7-a793-977f3f055a1d_Data.txt','623137e2-5a91-4ee7-a793-977f3f055a1d_Data.txt'
+select * into #tmp001
+from [dbo].[WBData]
+where   SeriesCode = @SeriesCode1 and Indexname =@Indexname1 AND ISNUMERIC( DataPeriod) = 1
+and CountryCode IN (select CountryCode	 from [Groups] where GroupCode =@GroupCode)
+ 
+ select * into #tmp002
+from [dbo].[WBData]
+where   SeriesCode = @SeriesCode2 and Indexname =@Indexname2 AND ISNUMERIC( DataPeriod) = 1
+and CountryCode IN (select CountryCode	 from [Groups] where GroupCode =@GroupCode)
+ 
+
+begin try
+  
+
+  SELECT @iCount= count(1)  
+FROM #tmp001 t1 join #tmp002 t2 on t1.CountryCode=  t2.CountryCode
+where ISNUMERIC( t1.DataPeriod) = 1 and ISNUMERIC(t2.DataPeriod)=1 
+
+ 
+
+ --if  isnull(@iCount,0)>7
+ ----INSERT WBCorelation
+ --([GroupCode]
+ --     ,[SeriesCode1]
+ --     ,[SeriesCode2]
+ --     ,[Indexname1]
+ --     ,[Indexname2]
+ --     ,[Corelation]
+ --     ,[Zref]
+ --     ,[CountX]
+	--  )
+SELECT @GroupCode, @SeriesCode1, @SeriesCode2, @Indexname1, @Indexname2,  (Avg( convert(float, t1.DataPeriod) * convert(float, t2.DataPeriod)) - Avg(convert(float, t1.DataPeriod)) * Avg(convert(float, t2.DataPeriod))) / ((case when StDevP(convert(float, t1.DataPeriod))= 0 then 0.000001 else StDevP(convert(float, t1.DataPeriod)) end )  * (case when StDevP(convert(float, t2.DataPeriod)) = 0 then 0.000001 else StDevP(convert(float, t2.DataPeriod)) end )) AS Correlation , GETDATE(), count(1) as adet
+FROM #tmp001 t1 join #tmp002 t2 on t1.CountryCode=  t2.CountryCode
+where ISNUMERIC( t1.DataPeriod) = 1 and ISNUMERIC(t2.DataPeriod)=1 
+
+end try 
+begin catch
+ 
+
+
+ 
+
+INSERT WBError
+ SELECT  
+  @GroupCode, @SeriesCode1, @SeriesCode2, @Indexname1, @Indexname2,
+        ERROR_NUMBER() AS ErrorNumber,  
+        ERROR_SEVERITY() AS ErrorSeverity,  
+        ERROR_STATE() AS ErrorState,  
+        ERROR_PROCEDURE() AS ErrorProcedure,  
+        ERROR_LINE() AS ErrorLine,  
+        ERROR_MESSAGE() AS ErrorMessage,
+		GETDATE();  
+
+
+end catch
+
+set nocount off
+
+
+GO
+/****** Object:  StoredProcedure [dbo].[sp_clean_data_after_calcualtion]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROC [dbo].[sp_clean_data_after_calcualtion]
+as
+
+ 
+	delete from [dbo].[WBCorelation] where SeriesCode1='GFDD.AI.25' 
+
+
+
+	delete from    [dbo].[WBCorelation]
+	where ID in(
+	select  min(ID) ID
+	from  [dbo].[WBCorelation]
+	where GroupCode ='WLD'
+	group by SeriesCode1, convert(numeric(20,1) , Corelation)
+	having count(1)>1)
+	
+	
+	delete from    [dbo].[WBCorelation]
+	where ID in(
+	select  min(ID) ID
+	from  [dbo].[WBCorelation]
+	where GroupCode ='WLD'
+	group by SeriesCode1, convert(numeric(20,1) , Corelation)
+	having count(1)>1)
+
+GO
+/****** Object:  StoredProcedure [dbo].[sp_prepare_data]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROC [dbo].[sp_prepare_data]
+as
+
+
+	/*
+	mucahit gundebahar , 
+	definition:  it removes redundant and inconsistent data and log deleted rows in  [WBDataDeleted] .
+
+	*/
+
+
+INSERT [WBDataDeleted]
+select * 
+ from [dbo].[WBData]
+ where LEN(CountryCode )>3
+
+delete  from [dbo].[WBData]
+ where LEN(CountryCode )>3
+
+
+INSERT [WBDataDeleted]
+select * 
+ from [dbo].[WBData]
+ where ISNUMERIC(DataPeriod )= 0
+
+delete  from [dbo].[WBData]
+ where ISNUMERIC(DataPeriod )= 0
+
+  
+  
+INSERT [WBDataDeleted]
+select * 
+ from [dbo].[WBData]
+ where DataPeriod IN ('0','1')
+
+delete  from [dbo].[WBData]
+ from [dbo].[WBData]
+ where DataPeriod IN ('0','1')
+
+
+ select CountryName as 'CountryNamex' ,CountryCode as 'CountryCodex', SeriesName as 'SeriesNamex',SeriesCode as 'SeriesCodex',DataPeriod as 'DataPeriodx',count(1) adet , min(Zref) Zrefx  into #tmp001
+ from [dbo].[WBData]
+ group by CountryName,CountryCode,SeriesName,SeriesCode,DataPeriod
+ having count(1) >1
+ order by 6 desc
+
+ 
+INSERT [WBDataDeleted]
+ select * 
+from [dbo].[WBData]   
+where exists  ( select 1 from #tmp001   where	CountryName = CountryNamex and 
+												CountryCode = CountryCodex and 
+												SeriesName = SeriesNamex and
+												DataPeriod = DataPeriodx and 
+												SeriesCode = SeriesCodex and
+												zref > zrefx)
+
+
+												 
+delete
+from [dbo].[WBData]   
+where exists  ( select 1 from #tmp001   where	CountryName = CountryNamex and 
+												CountryCode = CountryCodex and 
+												SeriesName = SeriesNamex and
+												DataPeriod = DataPeriodx and 
+												SeriesCode = SeriesCodex and
+												zref > zrefx)
+
+
+												
+select SeriesCode as SeriesCodex   into #tmp002
+ from [dbo].[WBData]
+ group by SeriesCode  
+ having count(1) <100
+ 
+ 
+INSERT [WBDataDeleted]
+ select * 
+from [dbo].[WBData]   
+where exists  ( select 1 from #tmp002 where	SeriesCode = SeriesCodex  )
+
+delete from [dbo].[WBData]   
+where exists  ( select 1 from #tmp002 where	SeriesCode = SeriesCodex  )
+
+
+select IndexName  as IndexNamex, SeriesCode  as SeriesCodex   into #tmp004
+ from [dbo].[WBData]
+ group by IndexName,SeriesCode  
+ having count(1) <100
+
+
+ 
+INSERT [WBDataDeleted]
+ select * 
+from [dbo].[WBData]   
+where exists  ( select 1 from #tmp004 where	SeriesCode = SeriesCodex   and IndexName = IndexNamex )
+
+delete from [dbo].[WBData]   
+where exists  ( select 1 from #tmp004 where	SeriesCode = SeriesCodex   and IndexName = IndexNamex )
+
+
+update [dbo].[WBDataDefinition]
+set IndicatorName = replace (IndicatorName , '(1=low to 6=high)','')
+where IndicatorName like '%(1=low to 6=high)%'
+
+ 
+GO
+/****** Object:  StoredProcedure [dbo].[sp_prepareStmt]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+ CREATE proc [dbo].[sp_prepareStmt] 
+ as
+ /*
+	mucahit gundebahar , 
+	definition:  it prepares for correlation calculation. 
+	copy results of this sp and execute then in other query window.
+	Whole calculation should take at least 15 minutes.
+	Do not close the executing windows during it is running.
+	*/
+
+
+
+ select IndexName,SeriesCode  into #tmp001
+ from [dbo].[WBData]
+ group by IndexName,SeriesCode  
+
+ select distinct GroupCode into #tmp002
+ from [dbo].[Groups]  
+ 
+
+ select 'exec  sp_calculate_correlation  ' + char (39) +   GroupCode + char (39) +',' + char (39) +   SeriesCode + char (39) + ',' + char (39) + 'FB.CBK.BRCH.P5' +  char (39)+ ',' +char (39) +  IndexName + char (39) + ',' +char (39) + '623137e2-5a91-4ee7-a793-977f3f055a1d_Data.txt' +char (39)  
+ from #tmp001 , #tmp002 
+GO
+/****** Object:  StoredProcedure [dbo].[sp_sel_WBCorelation]    Script Date: 30/07/2017 12:11:07 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE proc [dbo].[sp_sel_WBCorelation]
+@type int
+as
+ /*
+	mucahit gundebahar , 
+	definition:  it contains graphic and table queries.
+	*/
+
+if @type = 1 
+select (select top 1 IndicatorName 
+ from [dbo].[WBDataDefinition]
+ where Code = SeriesCode1 ) , *  from WBCorelation 
+where GroupCode ='WLD'
+order by Corelation  desc
+
+if @type = 2 
+select (select top 1 IndicatorName 
+ from [dbo].[WBDataDefinition]
+ where Code = SeriesCode1 ) , 
+ (select top 1  GroupName from [dbo].[Groups] t2 where t1.GroupCode = t2.GroupCode) , *  from WBCorelation  t1 
+order by Corelation  desc
+
+if @type = 3 
+select * from [dbo].[Groups] where GroupCode = 'IDB'
+
+if @type = 4 
+begin
+	print 'table 1 query'
+	select GroupName ,count(1),  (select count(1)  GroupName from [dbo].WBCorelation t2 where t1.GroupCode = t2.GroupCode) as 'countcorrelation', 
+							     (select avg(Corelation)  GroupName from [dbo].WBCorelation t2 where t1.GroupCode = t2.GroupCode) as 'avgcorrelation',
+								 (select max(Corelation)  GroupName from [dbo].WBCorelation t2 where t1.GroupCode = t2.GroupCode) as 'maxcorrelation' , 
+								  (select min(Corelation)  GroupName from [dbo].WBCorelation t2 where t1.GroupCode = t2.GroupCode) as 'mincorrelation' ,
+								 (select STDEV(Corelation)  GroupName from [dbo].WBCorelation t2 where t1.GroupCode = t2.GroupCode) as 'STDEVcorrelation'  
+								   
+								   
+	 from [dbo].[Groups] t1
+	where GroupCode not in    ('EAP','ECA','LAC','MNA','SSA','TLA','TSS','TEA','TEC','TMN','TSA')
+	group by GroupName  ,GroupCode
+	order by 2 desc
+end 
+if @type = 5
+begin
+	print 'table 3 query'
+	select (select top 1 IndicatorName 
+	 from [dbo].[WBDataDefinition]
+	 where Code = SeriesCode1 ) IndicatorName, convert(numeric(20,4) , Corelation) as Correlation ,CountX 
+	  from WBCorelation
+	where GroupCode ='WLD'
+	and ABS(Corelation) > 0.35  
+
+	order by Corelation desc
+
+end
+if @type = 6
+begin
+	print 'table 4 query'
+
+	select (select top 1 IndicatorName 
+	 from [dbo].[WBDataDefinition]
+	 where Code = SeriesCode1 ) IndicatorName, (select top 1  GroupName from [dbo].[Groups] t2 where t1.GroupCode = t2.GroupCode), convert(numeric(20,4)    , Corelation) as Correlation ,CountX
+	 from WBCorelation t1
+	where ABS(Corelation) > 0.90
+	and  CountX >17
+	and GroupCode not in   ('EAP','ECA','LAC','MNA','SSA','TLA','TSS','TEA','TEC','TMN','TSA')
+			
+	order by Corelation desc
+
+	print 'excluded cuountries for this table '
+	 
+end 
+
+if @type = 7
+begin
+	print 'graph 1 query'
+	select (select top 1 IndicatorName 
+	 from [dbo].[WBDataDefinition]
+	 where Code = SeriesCode1 ) IndicatorName, convert(numeric(20,4) , Corelation) as Correlation ,CountX 
+	  from WBCorelation
+	where GroupCode ='WLD' 
+	 order by 1
+
+end
+
+if @type = 8
+begin
+	print 'table 5 query'
+	select  (select top 1 IndicatorName 
+	 from [dbo].[WBDataDefinition]
+	 where Code = SeriesCode1 ) IndicatorName, 	 convert(numeric(20,4) , avg(Corelation))  as avgCorrelation  ,
+	 convert(numeric(20,4) , max(Corelation)) as maxCorrelation, 
+	 convert(numeric(20,4) , min(Corelation)) as minCorrelation,
+	 convert(numeric(20,4) , STDEV(Corelation)) as STDEVCorrelation,
+	 count (distinct groupcode) as Groupcount
+	  from 
+	   WBCorelation t1
+	     	  
+	 group by t1.SeriesCode1
+	 having  ABS(avg(Corelation)) > 0.35   
+	 order by 2 desc
+
+end
+if @type = 9
+begin
+	print 'table 5 query'
+	select  (select top 1 IndicatorName 
+	 from [dbo].[WBDataDefinition]
+	 where Code = SeriesCode1 ) IndicatorName, 	 convert(numeric(20,4) , avg(Corelation))  as avgCorrelation  ,
+	 convert(numeric(20,4) , max(Corelation)) as maxCorrelation, 
+	 convert(numeric(20,4) , min(Corelation)) as minCorrelation,
+	 convert(numeric(20,4) , STDEV(Corelation)) as STDEVCorrelation,
+	 count (distinct groupcode) as Groupcount
+	  from 
+	   WBCorelation t1
+	     	  
+	 group by t1.SeriesCode1
+	 having  ABS(avg(Corelation)) > 0.35   
+	 order by 2 desc
+
+end
+if @type = 10
+begin
+
+	select GroupName ,count(1), 
+		(select convert(numeric(20,4),  avg(Corelation))  GroupName from [dbo].WBCorelation t2 where t1.GroupCode = t2.GroupCode and t2.SeriesCode1 ='SH.MED.SAOP.P5') as 'Specialist surgical workforce',
+		(select convert(numeric(20,4) , avg(Corelation)) GroupName from [dbo].WBCorelation t2 where t1.GroupCode = t2.GroupCode and t2.SeriesCode1 ='IC.CRD.PUBL.ZS') as 'Public credit registry coverage (% of adults)',					 
+		(select convert(numeric(20,4) ,  avg(Corelation))  GroupName from [dbo].WBCorelation t2 where t1.GroupCode = t2.GroupCode and t2.SeriesCode1 ='GFDD.AI.25') as 'ATMs per 100,000 adults',
+		(select convert(numeric(20,4)  , avg(Corelation))  GroupName from [dbo].WBCorelation t2 where t1.GroupCode = t2.GroupCode and t2.SeriesCode1 ='SE.PRE.ENRL.TC.ZS') as 'Pupil-teacher ratio in pre-primary education (headcount basis)'						   
+								   
+	 from [dbo].[Groups] t1
+  where 	  GroupCode not in    ('EAP','ECA','LAC','MNA','SSA','TLA','TSS','TEA','TEC','TMN','TSA')
+	group by GroupName  ,GroupCode
+	having count(1) > 16
+	order by 3 desc
+
+ 
+end 
+if @type = 11
+begin
+	print 'table A deleted groups'
+  select distinct   GroupCode  as 'Group Code', GroupName as 'Group Name'
+  from [dbo].[Groups] t1
+  where 	  GroupCode  in   ('EAP','ECA','LAC','MNA','SSA','TLA','TSS','TEA','TEC','TMN','TSA')
+end
+
+if @type = 12
+begin
+	
+ select  ( select top 1  groupname  from     groups  t2 where   t1.GroupCode = t2.GroupCode)  , SeriesCode1,(select top 1 IndicatorName 
+	 from [dbo].[WBDataDefinition]
+	 where Code = SeriesCode1 ) IndicatorName, convert(numeric(20,4) , Corelation) as Correlation ,CountX 
+	  from WBCorelation t1
+	where --GroupCode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED') 	and 
+	ABS(Corelation) > 0.9  
+
+	order by 4 desc
+
+end
+
+if @type =13
+Begin
+
+	 select GroupName, ( select convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='SH.MED.SAOP.P5' and t1.GroupCode = t2.GroupCode)  
+					 , ( select CountX  from     WBCorelation  t2 where SeriesCode1='SH.MED.SAOP.P5' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED' )
+	 group by GroupName, groupcode
+	 order by 1  
+
+	 
+	 select GroupName, ( select convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='DC.DAC.FRAL.CD' and t1.GroupCode = t2.GroupCode)  
+					 , ( select CountX  from     WBCorelation  t2 where SeriesCode1='DC.DAC.FRAL.CD' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+
+	 	 select GroupName, ( select convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='DC.DAC.FRAL.CD' and t1.GroupCode = t2.GroupCode)  
+					 , ( select CountX  from     WBCorelation  t2 where SeriesCode1='DC.DAC.FRAL.CD' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+	 
+	 select GroupName, ( select convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='WP14940.10' and t1.GroupCode = t2.GroupCode)  
+					 , ( select CountX  from     WBCorelation  t2 where SeriesCode1='WP14940.10' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+
+
+	 	 select GroupName, ( select top 1  convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='IT.MLT.MAIN.P2' and t1.GroupCode = t2.GroupCode)  
+					 , ( select top 1  CountX  from     WBCorelation  t2 where SeriesCode1='IT.MLT.MAIN.P2' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+
+	 	 select GroupName, ( select top 1  convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='UIS.SLE.0' and t1.GroupCode = t2.GroupCode)  
+					 , ( select top 1  CountX  from     WBCorelation  t2 where SeriesCode1='UIS.SLE.0' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+
+
+	 	 select GroupName, ( select top 1  convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='IT.NET.USER.P2' and t1.GroupCode = t2.GroupCode)  
+					 , ( select top 1  CountX  from     WBCorelation  t2 where SeriesCode1='IT.NET.USER.P2' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+
+	select GroupName, ( select top 1  convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='PV.STD.ERR' and t1.GroupCode = t2.GroupCode)  
+					 , ( select top 1  CountX  from     WBCorelation  t2 where SeriesCode1='PV.STD.ERR' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+
+
+	 	select GroupName, ( select top 1  convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='FB.CBK.DPTR.P3' and t1.GroupCode = t2.GroupCode)  
+					 , ( select top 1  CountX  from     WBCorelation  t2 where SeriesCode1='FB.CBK.DPTR.P3' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+
+
+	 	select GroupName, ( select top 1  convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='SE.PRE.ENRL.TC.ZS' and t1.GroupCode = t2.GroupCode)  
+					 , ( select top 1  CountX  from     WBCorelation  t2 where SeriesCode1='SE.PRE.ENRL.TC.ZS' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+
+	 
+	  	select GroupName, ( select top 1  convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='SP.DYN.TFRT.IN' and t1.GroupCode = t2.GroupCode)  
+					 , ( select top 1  CountX  from     WBCorelation  t2 where SeriesCode1='SP.DYN.TFRT.IN' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+
+	 
+	  	select GroupName, ( select top 1  convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='SP.POP.0014.TO.ZS' and t1.GroupCode = t2.GroupCode)  
+					 , ( select top 1  CountX  from     WBCorelation  t2 where SeriesCode1='SP.POP.0014.TO.ZS' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+	 
+	 	  	select GroupName, ( select top 1  convert(numeric(20,4) ,Corelation)  from     WBCorelation  t2 where SeriesCode1='SH.STA.MMRT' and t1.GroupCode = t2.GroupCode)  
+					 , ( select top 1  CountX  from     WBCorelation  t2 where SeriesCode1='SH.STA.MMRT' and t1.GroupCode = t2.GroupCode)
+	 from [dbo].[Groups]  t1 
+	 where groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+	 group by GroupName, groupcode
+	 order by 1  
+	 
+	 
+	 
+
+	 select *  from     WBCorelation  t2 where SeriesCode1='IT.MLT.MAIN.P2' and  groupcode in ( 'LMY','MIC','HIC','EUU','MEA','SSF','ECS','LCN','SAS','EAS','WLD','OED')
+end
+
+
+
+ 
+GO
+USE [master]
+GO
+ALTER DATABASE [DBWorldBank] SET  READ_WRITE 
+GO
